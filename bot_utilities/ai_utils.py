@@ -143,16 +143,37 @@ async def generate_image_prodia(prompt, model, sampler, seed, neg):
     }
 
     async with aiohttp.ClientSession() as session:
-        while True:
-            async with session.get(url, headers=headers) as response:
-                json = await response.json()
-                if json['status'] == 'succeeded':
-                    async with session.get(f'https://images.prodia.xyz/{job_id}.png?download=1', headers=headers) as response:
-                        content = await response.content.read()
-                        img_file_obj = io.BytesIO(content)
-                        duration = time.time() - start_time
-                        print(f"\033[1;34m(Prodia) Finished image creation\n\033[0mJob id : {job_id}  Prompt : ", prompt, "in", duration, "seconds.")
-                        return img_file_obj
+        max_wait_time = 300  # 5 minutes timeout
+        poll_interval = 2  # Check status every 2 seconds
+        elapsed = 0
+        
+        while elapsed < max_wait_time:
+            try:
+                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    json = await response.json()
+                    status = json.get('status', 'unknown')
+                    print(f"\033[1;33m(Prodia) Job {job_id} status: {status}\033[0m")
+                    
+                    if status == 'succeeded':
+                        async with session.get(f'https://images.prodia.xyz/{job_id}.png?download=1', headers=headers) as img_response:
+                            content = await img_response.content.read()
+                            img_file_obj = io.BytesIO(content)
+                            duration = time.time() - start_time
+                            print(f"\033[1;34m(Prodia) Finished image creation\n\033[0mJob id : {job_id}  Prompt : ", prompt, "in", duration, "seconds.")
+                            return img_file_obj
+                    elif status == 'failed':
+                        raise Exception(f"Prodia job failed. Status: {json.get('message', 'Unknown error')}")
+                    
+                    await asyncio.sleep(poll_interval)
+                    elapsed += poll_interval
+            except asyncio.TimeoutError:
+                print(f"\033[1;31m(Prodia) Request timeout for job {job_id}\033[0m")
+                raise
+            except Exception as e:
+                print(f"\033[1;31m(Prodia) Error checking job status: {e}\033[0m")
+                raise
+        
+        raise TimeoutError(f"Prodia image generation timed out after {max_wait_time} seconds. Job ID: {job_id}")
 
 async def text_to_speech(text):
     bytes_obj = io.BytesIO()
