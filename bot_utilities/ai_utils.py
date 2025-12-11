@@ -11,11 +11,15 @@ from bot_utilities.config_loader import load_current_language, config
 from openai import AsyncOpenAI
 from duckduckgo_search import AsyncDDGS
 from dotenv import load_dotenv
+import asyncio
+import requests
+from bs4 import BeautifulSoup
 
 load_dotenv()
 
 current_language = load_current_language()
 internet_access = config['INTERNET_ACCESS']
+max_search_results = config["MAX_SEARCH_RESULTS"]
 
 client = AsyncOpenAI(
     base_url=config['API_BASE_URL'],
@@ -58,7 +62,7 @@ async def generate_response(instructions, history):
 
     if tool_calls:
         available_functions = {
-            "searchtool": duckduckgotool,
+            "searchtool": googleapi,
         }
         messages.append(response_message)
 
@@ -84,18 +88,19 @@ async def generate_response(instructions, history):
         return second_response.choices[0].message.content
     return response_message.content
 
-async def duckduckgotool(query) -> str:
-    if config['INTERNET_ACCESS']:
-        return "internet access has been disabled by user"
-    blob = ''
-    results = await AsyncDDGS(proxy=None).text(query, max_results=6)
-    try:
-        for index, result in enumerate(results[:6]):  # Limiting to 6 results
-            blob += f'[{index}] Title : {result["title"]}\nSnippet : {result["body"]}\n\n\n Provide a cohesive response base on provided Search results'
-    except Exception as e:
-        blob += f"Search error: {e}\n"
-    return blob
-
+async def googleapi(query: str) -> str:
+    if not internet_access:
+        return "Internet access has been disabled by user."
+    url = f"https://www.googleapis.com/customsearch/v1?q={quote(query)}&key={os.environ.get('GOOGLE_API')}&cx={os.environ.get('GOOGLE_ENGINE')}&num={max_search_results}"
+    response = requests.get(url).json()
+    if "items" not in response:
+        return "No results found." 
+    formatted_results = []
+    for item in response["items"][:max_search_results]:
+        snippet = item.get("snippet", "No description available")
+        snippet = ' '.join(snippet.split()[:50])  # Limit to first 50 words
+        formatted_results.append(f"• {item['title']}\n  {snippet}\n  {item['link']}")
+    return "Here's what I found:\n\n" + "\n\n".join(formatted_results)
 
 async def poly_image_gen(session, prompt):
     seed = random.randint(1, 100000)

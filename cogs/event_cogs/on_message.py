@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import asyncio
 
 from bot_utilities.response_utils import split_response
 from bot_utilities.ai_utils import generate_response, text_to_speech
@@ -48,6 +49,8 @@ class OnMessage(commands.Cog):
 
     async def send_response(self, message, response):
         bytes_obj = await text_to_speech(response)
+        bytes_obj.seek(0)  # důležité, aby se četlo od začátku
+
         author_voice_channel = None
         author_member = None
         if message.guild:
@@ -57,9 +60,11 @@ class OnMessage(commands.Cog):
 
         if author_voice_channel:
             voice_channel = await author_voice_channel.connect()
-            voice_channel.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=bytes_obj))
+            # FFmpegPCMAudio s pipe=True pro BytesIO
+            voice_channel.play(discord.FFmpegPCMAudio(executable="C:\\ffmpeg\\bin\\ffmpeg.exe", source=bytes_obj, pipe=True))
+
             while voice_channel.is_playing():
-                pass
+                await asyncio.sleep(0.1)  # neblokuj event loop
             await voice_channel.disconnect()
 
         if response is not None:
@@ -67,9 +72,13 @@ class OnMessage(commands.Cog):
                 try:
                     await message.reply(chunk, allowed_mentions=discord.AllowedMentions.none(), suppress_embeds=True)
                 except Exception:
-                    await message.channel.send("I apologize for any inconvenience caused. It seems that there was an error preventing the delivery of my message. Additionally, it appears that the message I was replying to has been deleted, which could be the reason for the issue. If you have any further questions or if there's anything else I can assist you with, please let me know and I'll be happy to help.")
+                    await message.channel.send(
+                        "I apologize for any inconvenience caused. It seems that there was an error preventing the delivery of my message. Additionally, it appears that the message I was replying to has been deleted, which could be the reason for the issue. If you have any further questions or if there's anything else I can assist you with, please let me know and I'll be happy to help."
+                    )
         else:
-            await message.reply("I apologize for any inconvenience caused. It seems that there was an error preventing the delivery of my message.")
+            await message.reply(
+                "I apologize for any inconvenience caused. It seems that there was an error preventing the delivery of my message."
+            )
 
     @commands.Cog.listener()
     async def on_message(self, message):

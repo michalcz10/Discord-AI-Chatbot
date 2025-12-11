@@ -1,0 +1,1 @@
+xcopy ".\\*" "V:\Users\vm-user\Documents\Discord-AI-Chatbot-main" /h /i /c /k /e /r /y
