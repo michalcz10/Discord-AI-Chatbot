@@ -14,11 +14,11 @@ AI_NSFW_CONTENT_FILTER: true # Enable NSFW AI detector to detect NSFW prompt on 
 
 LANGUAGE: en # Specify the language code (check 'lang' folder for valid codes)
 
-DEFAULT_INSTRUCTION: ivan # Specify the instruction prompt to use (check 'instructions' folder for valid prompts)
+DEFAULT_INSTRUCTION: assist # Specify the instruction prompt to use (check 'instructions' folder for valid prompts)
 # To add custom prompts, create a .txt file like 'custom.txt' in `instructions` folder and set INSTRUCTIONS as 'custom'
 
-Discord: https://discord.gg/6MT3CZauT8
-Github: https://github.com/mishalhossin/Discord-AI-Chatbot
+Discord: https://discord.gg/DtrxZrbKWv
+Github: https://github.com/michalcz10/Discord-AI-Chatbot
 
 TRIGGER:
   - chatbot
@@ -34,7 +34,7 @@ DISABLE_PRESENCE: false
 PRESENCES:
   - How can I assist you?
   - Currently in {guild_count} guilds
-  - Support at https://discord.gg/6MT3CZauT8
+  - Support at https://discord.gg/DtrxZrbKWv
 # List of different presences to be used
 
 
