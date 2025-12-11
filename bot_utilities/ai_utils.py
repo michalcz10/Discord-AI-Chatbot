@@ -9,7 +9,6 @@ from gtts import gTTS
 from urllib.parse import quote
 from bot_utilities.config_loader import load_current_language, config
 from openai import AsyncOpenAI
-from duckduckgo_search import AsyncDDGS
 from dotenv import load_dotenv
 import asyncio
 import requests
